@@ -40817,9 +40817,10 @@ function shouldDeleteExistingStack(stack) {
     return (stack.StackStatus === dist_cjs.StackStatus.ROLLBACK_COMPLETE ||
         stack.StackStatus === dist_cjs.StackStatus.REVIEW_IN_PROGRESS);
 }
-async function createChangeSet(client, cfStackName, changeSetType, cfTemplateBody, parameters, capabilities) {
+async function createChangeSet(client, cfStackName, changeSetType, cfTemplateBody, cfTemplateUrl, parameters, capabilities) {
     return client.send(new dist_cjs.CreateChangeSetCommand({
         TemplateBody: cfTemplateBody,
+        TemplateURL: cfTemplateUrl,
         StackName: cfStackName,
         ChangeSetName: `test-changeset-${Date.now()}`,
         ChangeSetType: changeSetType,
@@ -40885,9 +40886,10 @@ async function getChangeSetType(client, cfStackName, parameters) {
     }
     return update ? dist_cjs.ChangeSetType.UPDATE : dist_cjs.ChangeSetType.CREATE;
 }
-async function validateTemplate(client, templateBody) {
+async function validateTemplate(client, templateBody, templateUrl) {
     await client.send(new dist_cjs.ValidateTemplateCommand({
         TemplateBody: templateBody,
+        TemplateURL: templateUrl,
     }));
 }
 function getCloudFormationParameters(parametersQuery) {
@@ -40905,10 +40907,10 @@ function getCloudFormationParameters(parametersQuery) {
     }
     return cfParams;
 }
-async function updateCloudFormationStack(client, cfStackName, applyChangeSet, capabilities, cfTemplateBody, cfParameters) {
-    await validateTemplate(client, cfTemplateBody);
+async function updateCloudFormationStack(client, cfStackName, applyChangeSet, capabilities, cfTemplateBody, cfTemplateUrl, cfParameters) {
+    await validateTemplate(client, cfTemplateBody, cfTemplateUrl);
     const changeSetType = await getChangeSetType(client, cfStackName, cfParameters);
-    const changeSet = await createChangeSet(client, cfStackName, changeSetType, cfTemplateBody, cfParameters, capabilities);
+    const changeSet = await createChangeSet(client, cfStackName, changeSetType, cfTemplateBody, cfTemplateUrl, cfParameters, capabilities);
     const changes = await getChanges(client, cfStackName, changeSet);
     let stack = undefined;
     if (changeSet.Id) {
@@ -40978,7 +40980,11 @@ function getInputs() {
         trimWhitespace: true,
     });
     const template = (0,core.getInput)('template', {
-        required: true,
+        required: false,
+        trimWhitespace: true,
+    });
+    const templateUrl = (0,core.getInput)('template-url', {
+        required: false,
         trimWhitespace: true,
     });
     const parameters = (0,core.getInput)('parameters', {
@@ -40997,6 +41003,7 @@ function getInputs() {
         stackName,
         region,
         template,
+        templateUrl,
         applyChangeSet,
         parameters,
         capabilities,
@@ -41017,13 +41024,16 @@ async function run() {
         checkIsValidGitHubEvent();
         const inputs = getInputs();
         (0,core.debug)(`Inputs:\n${JSON.stringify(inputs, null, 2)}`);
-        const cfTemplateBody = external_node_fs_namespaceObject.readFileSync(external_node_path_namespaceObject.resolve(inputs.template), 'utf8');
+        let cfTemplateBody;
+        if (inputs.template.length > 0) {
+            cfTemplateBody = external_node_fs_namespaceObject.readFileSync(external_node_path_namespaceObject.resolve(inputs.template), 'utf8');
+        }
         const cloudFormationClient = new dist_cjs.CloudFormationClient({
             region: inputs.region,
         });
         const cfParameters = getCloudFormationParameters(inputs.parameters);
         (0,core.debug)(`CloudFormation Parameters:\n${JSON.stringify(cfParameters, null, 2)}`);
-        const result = await updateCloudFormationStack(cloudFormationClient, inputs.stackName, inputs.applyChangeSet, inputs.capabilities, cfTemplateBody, cfParameters);
+        const result = await updateCloudFormationStack(cloudFormationClient, inputs.stackName, inputs.applyChangeSet, inputs.capabilities, cfTemplateBody, inputs.templateUrl, cfParameters);
         logOutputParameters(((_a = result.stack) === null || _a === void 0 ? void 0 : _a.Outputs) || []);
         logChanges(result.changes);
     }

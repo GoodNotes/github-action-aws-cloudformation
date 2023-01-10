@@ -12,7 +12,12 @@ export function getInputs() {
   });
 
   const template = getInput('template', {
-    required: true,
+    required: false,
+    trimWhitespace: true,
+  });
+
+  const templateUrl = getInput('template-url', {
+    required: false,
     trimWhitespace: true,
   });
 
@@ -36,6 +41,7 @@ export function getInputs() {
     stackName,
     region,
     template,
+    templateUrl,
     applyChangeSet,
     parameters,
     capabilities,

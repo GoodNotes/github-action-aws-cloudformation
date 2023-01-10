@@ -22,10 +22,10 @@ export async function run(): Promise<void> {
 
     debug(`Inputs:\n${JSON.stringify(inputs, null, 2)}`);
 
-    const cfTemplateBody = fs.readFileSync(
-      path.resolve(inputs.template),
-      'utf8'
-    );
+    let cfTemplateBody;
+    if (inputs.template.length > 0) {
+      cfTemplateBody = fs.readFileSync(path.resolve(inputs.template), 'utf8');
+    }
 
     const cloudFormationClient = new CloudFormationClient({
       region: inputs.region,
@@ -43,6 +43,7 @@ export async function run(): Promise<void> {
       inputs.applyChangeSet,
       inputs.capabilities,
       cfTemplateBody,
+      inputs.templateUrl,
       cfParameters
     );
 

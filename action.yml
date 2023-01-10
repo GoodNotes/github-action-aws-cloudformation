@@ -9,8 +9,11 @@ inputs:
     required: true
     description: 'The name of the Cloudformation stack to be created. For example: example-com-static-cloudformation-stack'
   template:
-    required: true
+    required: false
     description: 'The relative path to the CloudFormation stack template. For example: ./cloudformation/s3bucket_with_cloudfront.yml'
+  template-url:
+    required: false
+    description: 'The url to the CloudFormation stack template. For example: https://s3.amazonaws.com/cloudformation-templates-us-east-1/s3bucket_with_cloudfront.yml'
   aws-region:
     require: true
     description: 'The AWS region in which to create the stack. For example: us-east-1'

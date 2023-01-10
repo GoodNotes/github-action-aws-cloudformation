@@ -194,13 +194,15 @@ async function createChangeSet(
   client: CloudFormationClient,
   cfStackName: string,
   changeSetType: ChangeSetType,
-  cfTemplateBody: string,
+  cfTemplateBody: string | undefined,
+  cfTemplateUrl: string | undefined,
   parameters: Parameter[],
   capabilities: string
 ) {
   return client.send(
     new CreateChangeSetCommand({
       TemplateBody: cfTemplateBody,
+      TemplateURL: cfTemplateUrl,
       StackName: cfStackName,
       ChangeSetName: `test-changeset-${Date.now()}`,
       ChangeSetType: changeSetType,
@@ -314,11 +316,13 @@ async function getChangeSetType(
 
 async function validateTemplate(
   client: CloudFormationClient,
-  templateBody: string
+  templateBody: string | undefined,
+  templateUrl: string | undefined
 ): Promise<void> {
   await client.send(
     new ValidateTemplateCommand({
       TemplateBody: templateBody,
+      TemplateURL: templateUrl,
     })
   );
 }
@@ -350,10 +354,11 @@ export async function updateCloudFormationStack(
   cfStackName: string,
   applyChangeSet: boolean,
   capabilities: string,
-  cfTemplateBody: string,
+  cfTemplateBody: string | undefined,
+  cfTemplateUrl: string | undefined,
   cfParameters: Parameter[]
 ): Promise<UpdateCloudFormationStackResponse> {
-  await validateTemplate(client, cfTemplateBody);
+  await validateTemplate(client, cfTemplateBody, cfTemplateUrl);
 
   const changeSetType = await getChangeSetType(
     client,
@@ -366,6 +371,7 @@ export async function updateCloudFormationStack(
     cfStackName,
     changeSetType,
     cfTemplateBody,
+    cfTemplateUrl,
     cfParameters,
     capabilities
   );
