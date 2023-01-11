@@ -124,11 +124,13 @@ async function describeStack(
   client: CloudFormationClient,
   cfStackName: string
 ): Promise<Stack> {
+  debug(`Describing stack ${cfStackName}`);
   const response = await client.send(
     new DescribeStacksCommand({
       StackName: cfStackName,
     })
   );
+  debug(`Result: ${JSON.stringify(response.Stacks, null, 2)}`);
   if (!response.Stacks?.length) {
     throw new Error('Stack not found');
   }
@@ -194,15 +196,19 @@ async function createChangeSet(
   client: CloudFormationClient,
   cfStackName: string,
   changeSetType: ChangeSetType,
-  cfTemplateBody: string,
+  cfTemplateBody: string | undefined,
+  cfTemplateUrl: string | undefined,
   parameters: Parameter[],
   capabilities: string
 ) {
+  const ChangeSetName = `test-changeset-${Date.now()}`;
+  debug(`Creating changeset: ${ChangeSetName}`);
   return client.send(
     new CreateChangeSetCommand({
       TemplateBody: cfTemplateBody,
+      TemplateURL: cfTemplateUrl,
       StackName: cfStackName,
-      ChangeSetName: `test-changeset-${Date.now()}`,
+      ChangeSetName,
       ChangeSetType: changeSetType,
       Parameters: parameters,
       Capabilities: capabilities
@@ -314,11 +320,13 @@ async function getChangeSetType(
 
 async function validateTemplate(
   client: CloudFormationClient,
-  templateBody: string
+  templateBody: string | undefined,
+  templateUrl: string | undefined
 ): Promise<void> {
   await client.send(
     new ValidateTemplateCommand({
       TemplateBody: templateBody,
+      TemplateURL: templateUrl,
     })
   );
 }
@@ -331,10 +339,10 @@ export function getCloudFormationParameters(
   }
   const params = new URLSearchParams(parametersQuery);
   const cfParams: Parameter[] = [];
-  for (const key of params.keys()) {
+  for (const [key, value] of params.entries()) {
     cfParams.push({
       ParameterKey: key.trim(),
-      ParameterValue: params.get(key)?.trim() || undefined,
+      ParameterValue: value.trim(),
     });
   }
   return cfParams;
@@ -350,22 +358,25 @@ export async function updateCloudFormationStack(
   cfStackName: string,
   applyChangeSet: boolean,
   capabilities: string,
-  cfTemplateBody: string,
+  cfTemplateBody: string | undefined,
+  cfTemplateUrl: string | undefined,
   cfParameters: Parameter[]
 ): Promise<UpdateCloudFormationStackResponse> {
-  await validateTemplate(client, cfTemplateBody);
+  await validateTemplate(client, cfTemplateBody, cfTemplateUrl);
 
   const changeSetType = await getChangeSetType(
     client,
     cfStackName,
     cfParameters
   );
+  debug(`changeSetType: ${changeSetType}`);
 
   const changeSet = await createChangeSet(
     client,
     cfStackName,
     changeSetType,
     cfTemplateBody,
+    cfTemplateUrl,
     cfParameters,
     capabilities
   );
