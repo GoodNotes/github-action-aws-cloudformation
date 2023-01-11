@@ -23,7 +23,7 @@ export async function run(): Promise<void> {
     debug(`Inputs:\n${JSON.stringify(inputs, null, 2)}`);
 
     let cfTemplateBody;
-    if (inputs.template.length > 0) {
+    if (inputs.template && inputs.template.length > 0) {
       cfTemplateBody = fs.readFileSync(path.resolve(inputs.template), 'utf8');
     }
 

@@ -40986,11 +40986,11 @@ function getInputs() {
     const template = (0,core.getInput)('template', {
         required: false,
         trimWhitespace: true,
-    });
+    }) || undefined;
     const templateUrl = (0,core.getInput)('template-url', {
         required: false,
         trimWhitespace: true,
-    });
+    }) || undefined;
     const parameters = (0,core.getInput)('parameters', {
         required: false,
         trimWhitespace: true,
@@ -41029,7 +41029,7 @@ async function run() {
         const inputs = getInputs();
         (0,core.debug)(`Inputs:\n${JSON.stringify(inputs, null, 2)}`);
         let cfTemplateBody;
-        if (inputs.template.length > 0) {
+        if (inputs.template && inputs.template.length > 0) {
             cfTemplateBody = external_node_fs_namespaceObject.readFileSync(external_node_path_namespaceObject.resolve(inputs.template), 'utf8');
         }
         const cloudFormationClient = new dist_cjs.CloudFormationClient({
