@@ -51,7 +51,7 @@ export async function run(): Promise<void> {
     logChanges(result.changes);
   } catch (error) {
     if (error instanceof Error) {
-      setFailed(error.message);
+      setFailed(error);
     } else {
       setFailed('Unknown error');
     }

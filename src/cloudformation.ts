@@ -124,11 +124,13 @@ async function describeStack(
   client: CloudFormationClient,
   cfStackName: string
 ): Promise<Stack> {
+  debug(`Describing stack ${cfStackName}`);
   const response = await client.send(
     new DescribeStacksCommand({
       StackName: cfStackName,
     })
   );
+  debug(`Result: ${JSON.stringify(response.Stacks, null, 2)}`);
   if (!response.Stacks?.length) {
     throw new Error('Stack not found');
   }
@@ -199,12 +201,14 @@ async function createChangeSet(
   parameters: Parameter[],
   capabilities: string
 ) {
+  const ChangeSetName = `test-changeset-${Date.now()}`;
+  debug(`Creating changeset: ${ChangeSetName}`);
   return client.send(
     new CreateChangeSetCommand({
       TemplateBody: cfTemplateBody,
       TemplateURL: cfTemplateUrl,
       StackName: cfStackName,
-      ChangeSetName: `test-changeset-${Date.now()}`,
+      ChangeSetName,
       ChangeSetType: changeSetType,
       Parameters: parameters,
       Capabilities: capabilities
@@ -335,10 +339,10 @@ export function getCloudFormationParameters(
   }
   const params = new URLSearchParams(parametersQuery);
   const cfParams: Parameter[] = [];
-  for (const key of params.keys()) {
+  for (const [key, value] of params.entries()) {
     cfParams.push({
       ParameterKey: key.trim(),
-      ParameterValue: params.get(key)?.trim() || undefined,
+      ParameterValue: value.trim(),
     });
   }
   return cfParams;
@@ -365,6 +369,7 @@ export async function updateCloudFormationStack(
     cfStackName,
     cfParameters
   );
+  debug(`changeSetType: ${changeSetType}`);
 
   const changeSet = await createChangeSet(
     client,

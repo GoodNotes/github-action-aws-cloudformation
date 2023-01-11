@@ -40768,9 +40768,11 @@ async function applyChangeSetAndWait(client, cfStackName, changeSetId) {
 }
 async function describeStack(client, cfStackName) {
     var _a;
+    (0,core.debug)(`Describing stack ${cfStackName}`);
     const response = await client.send(new dist_cjs.DescribeStacksCommand({
         StackName: cfStackName,
     }));
+    (0,core.debug)(`Result: ${JSON.stringify(response.Stacks, null, 2)}`);
     if (!((_a = response.Stacks) === null || _a === void 0 ? void 0 : _a.length)) {
         throw new Error('Stack not found');
     }
@@ -40818,11 +40820,13 @@ function shouldDeleteExistingStack(stack) {
         stack.StackStatus === dist_cjs.StackStatus.REVIEW_IN_PROGRESS);
 }
 async function createChangeSet(client, cfStackName, changeSetType, cfTemplateBody, cfTemplateUrl, parameters, capabilities) {
+    const ChangeSetName = `test-changeset-${Date.now()}`;
+    (0,core.debug)(`Creating changeset: ${ChangeSetName}`);
     return client.send(new dist_cjs.CreateChangeSetCommand({
         TemplateBody: cfTemplateBody,
         TemplateURL: cfTemplateUrl,
         StackName: cfStackName,
-        ChangeSetName: `test-changeset-${Date.now()}`,
+        ChangeSetName,
         ChangeSetType: changeSetType,
         Parameters: parameters,
         Capabilities: capabilities
@@ -40893,16 +40897,15 @@ async function validateTemplate(client, templateBody, templateUrl) {
     }));
 }
 function getCloudFormationParameters(parametersQuery) {
-    var _a;
     if (!parametersQuery) {
         return [];
     }
     const params = new URLSearchParams(parametersQuery);
     const cfParams = [];
-    for (const key of params.keys()) {
+    for (const [key, value] of params.entries()) {
         cfParams.push({
             ParameterKey: key.trim(),
-            ParameterValue: ((_a = params.get(key)) === null || _a === void 0 ? void 0 : _a.trim()) || undefined,
+            ParameterValue: value.trim(),
         });
     }
     return cfParams;
@@ -40910,6 +40913,7 @@ function getCloudFormationParameters(parametersQuery) {
 async function updateCloudFormationStack(client, cfStackName, applyChangeSet, capabilities, cfTemplateBody, cfTemplateUrl, cfParameters) {
     await validateTemplate(client, cfTemplateBody, cfTemplateUrl);
     const changeSetType = await getChangeSetType(client, cfStackName, cfParameters);
+    (0,core.debug)(`changeSetType: ${changeSetType}`);
     const changeSet = await createChangeSet(client, cfStackName, changeSetType, cfTemplateBody, cfTemplateUrl, cfParameters, capabilities);
     const changes = await getChanges(client, cfStackName, changeSet);
     let stack = undefined;
@@ -41039,7 +41043,7 @@ async function run() {
     }
     catch (error) {
         if (error instanceof Error) {
-            (0,core.setFailed)(error.message);
+            (0,core.setFailed)(error);
         }
         else {
             (0,core.setFailed)('Unknown error');
